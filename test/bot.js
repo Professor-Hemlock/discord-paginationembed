@@ -1,16 +1,17 @@
-const { Client } = require('discord.js');
+const { AttachmentBuilder, Client, GatewayIntentBits } = require('discord.js');
 const PaginationEmbed = require('../');
 
 const credentials = require('./credentials');
 
 const bot = new Client({
   intents: [
-    'GUILDS',
-    'GUILD_MESSAGES',
-    'GUILD_MESSAGE_REACTIONS',
-    'DIRECT_MESSAGES',
-    'DIRECT_MESSAGE_REACTIONS',
-  ]
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.DirectMessageReactions,
+  ],
 });
 
 const error = msg => {
@@ -44,7 +45,7 @@ bot
 
     console.log('Mode:', test);
 
-    if (test === 'embeds') {
+    if (true) {
       const embeds = [];
 
       for (let i = 1; i <= 3; ++i)
@@ -55,6 +56,7 @@ bot
 
       const Embeds = new PaginationEmbed.Embeds()
         .setArray(embeds)
+        .setFile(new AttachmentBuilder(`${__dirname}/images/1.jpg`))
         .setAuthorizedUsers(users)
         .setChannel(channel)
         .setTitle('Test Title')
@@ -72,11 +74,11 @@ bot
         .setFunctionEmojis({
           '⬆': (_, instance) => {
             for (const embed of instance.array)
-              embed.fields[0].value++;
+              embed.data.fields[0].value++;
           },
           '⬇': (_, instance) => {
             for (const embed of instance.array)
-              embed.fields[0].value--;
+              embed.data.fields[0].value--;
           },
           '⏹': () => Promise.reject('stopped'),
           '🔕': () => Promise.reject(new Error('Worst Error Ever'))
@@ -93,46 +95,6 @@ bot
       await Embeds.build();
 
       return done();
-    } else if (test === 'fieldsembed') {
-      const FieldsEmbed = new PaginationEmbed.FieldsEmbed()
-        .setArray([ { name: 'John Doe' }, { name: 'Jane Doe' } ])
-        .setAuthorizedUsers(users)
-        .setChannel(channel)
-        .setElementsPerPage(1)
-        .setPage(2)
-        .setPageIndicator('footer', (page, pages) => `peij ${page} / ${pages}`)
-        .formatField('Name', i => i.name)
-        .setDeleteOnTimeout(deleteOnTimeout)
-        .setDisabledNavigationEmojis(disabledNavigationEmojis)
-        .setEmojisFunctionAfterNavigation(emojisFunctionAfterNavigation)
-        .setFunctionEmojis({
-          '🔄': (user, instance) => {
-            const field = instance.embed.fields[0];
-
-            if (field.name === 'Name')
-              field.name = user.tag;
-            else
-              field.name = 'Name';
-          }
-        })
-        .addFunctionEmoji('🅱', (_, instance) => {
-          const field = instance.embed.fields[0];
-
-          if (field.name.includes('🅱'))
-            field.name = 'Name';
-          else
-            field.name = 'Na🅱e';
-        });
-
-      FieldsEmbed.embed
-        .setColor(0xFF00AE)
-        .setDescription('Test Description')
-        .setFooter(`version: ${PaginationEmbed.version}`)
-        .addField('Test Static Field', 'and its value');
-
-      await FieldsEmbed.build();
-
-      return done();
-    } else error('Invalid pagination mode. Either choose \'embeds\' or \'fieldsembed\'');
+    }
   })
   .login(credentials.token);

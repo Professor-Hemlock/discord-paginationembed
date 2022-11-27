@@ -1,21 +1,19 @@
 /** @module PaginationEmbed */
 
 import {
+  AttachmentBuilder,
   DMChannel,
   Emoji,
   Message,
   MessageReaction,
   NewsChannel,
+  PermissionsBitField,
   Snowflake,
   TextChannel,
   User
 } from 'discord.js';
 import { EventEmitter } from 'events';
 import { Embeds } from '../Embeds';
-import { FieldsEmbed } from '../FieldsEmbed';
-
-/** @ignore */
-const MESSAGE_DELETED = 'Client\'s message was deleted before being processed.';
 
 /**
  * The base class for Pagination Modes. **Do not invoke**.
@@ -77,6 +75,9 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
   /** An array of elements to paginate. */
   public array: Element[];
 
+  /** An array of files to attach to the paginated messages. */
+  public files: AttachmentBuilder[];
+
   /**
    * Whether to show page indicator, or put it in embed's footer text (replaces the existing text) instead.
    * Default: `false`
@@ -103,7 +104,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
    * Function emojis are user-customised message reactions
    * for modifying the current instance of the pagination such as modifying embed texts, stopping the pagination, etc.
    */
-  public functionEmojis: FunctionEmoji<Element>;
+  public functionEmojis: FunctionEmoji;
 
   /**
    * The disabled navigation emojis.
@@ -144,7 +145,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
 
   public build () {
     throw new Error(
-      'Cannot invoke this class. Invoke with [PaginationEmbed.Embeds] or [PaginationEmbed.FieldsEmbed] instead.'
+      'Cannot invoke this class. Invoke with [PaginationEmbed.Embeds] instead.'
     );
   }
 
@@ -165,7 +166,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
    * @param emoji - The emoji to use as the function's emoji.
    * @param callback - The function to call upon pressing the function emoji.
    */
-  public addFunctionEmoji (emoji: string, callback: (user: User, instance: Embeds | FieldsEmbed<Element>) => any) {
+  public addFunctionEmoji (emoji: string, callback: (user: User, instance: Embeds) => any) {
     if (!(callback instanceof Function))
       throw new TypeError(`Callback for ${emoji} must be a function type.`);
 
@@ -207,6 +208,36 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
     if (!isValidArray) throw new TypeError('Cannot invoke PaginationEmbed class without a valid array to paginate.');
 
     this.array = array;
+
+    return this;
+  }
+
+  /**
+   * Sets the array of files to attach to each embed.
+   * @param files - An array of files to attach to the embeds.
+   */
+  public setFiles (files: AttachmentBuilder[]) {
+    if (!this.array) throw new TypeError('this.array must be set first.');
+
+    if (this.array.length !== files.length)
+      throw new TypeError('the files array must have the same length as the embeds array.');
+
+    this.files = files;
+
+    return this;
+  }
+
+  /**
+   * Set a single file to attach to every embed.
+   * @param file - The file to attach to every embed.
+   */
+  public setFile (file: AttachmentBuilder) {
+    if (!this.array) throw new TypeError('this.array must be set first.');
+
+    this.files = [];
+    this.array.forEach(() => {
+      this.files.push(file);
+    });
 
     return this;
   }
@@ -322,7 +353,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
    * ```
    * @param emojis - An object containing customised emojis to use as function emojis.
    */
-  public setFunctionEmojis (emojis: FunctionEmoji<Element>) {
+  public setFunctionEmojis (emojis: FunctionEmoji) {
     for (const emoji of Object.keys(emojis)) {
       const fn = emojis[emoji];
 
@@ -446,7 +477,12 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
     if (channel.guild) {
       const missing = channel
         .permissionsFor(channel.client.user)
-        .missing([ 'ADD_REACTIONS', 'EMBED_LINKS', 'VIEW_CHANNEL', 'SEND_MESSAGES' ]);
+        .missing([
+          PermissionsBitField.Flags.AddReactions,
+          PermissionsBitField.Flags.EmbedLinks,
+          PermissionsBitField.Flags.ViewChannel,
+          PermissionsBitField.Flags.SendMessages,
+        ]);
 
       if (missing.length)
         throw new Error(`Cannot invoke PaginationEmbed class without required permissions: ${missing.join(', ')}`);
@@ -501,8 +537,8 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
   }
 
   /**
-   * Helper for intialising the MessageEmbed.
-   * [For sub-class] Initialises the MessageEmbed.
+   * Helper for intialising the EmbedBuilder.
+   * [For sub-class] Initialises the EmbedBuilder.
    * @param callNavigation - Whether to call _drawEmojis().
    * @ignore
    */
@@ -552,7 +588,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
       if (clientMessage.guild) {
         const missing = channel
           .permissionsFor(channel.client.user)
-          .missing([ 'MANAGE_MESSAGES' ]);
+          .missing([ PermissionsBitField.Flags.ManageMessages ]);
 
         if (!missing.length)
           await response.users.remove(user);
@@ -585,7 +621,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
           const cb = this.functionEmojis[emoji[0]] || this.functionEmojis[emoji[1]];
 
           try {
-            await cb(user, this as unknown as Embeds | FieldsEmbed<Element>);
+            await cb(user, this as unknown as Embeds);
           } catch (err) {
             return this._cleanUp(err, clientMessage, false, user);
           }
@@ -609,15 +645,16 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
   protected async _cleanUp (err: any, clientMessage: Message, expired = true, user?: User) {
     const channel = this.clientAssets.message.channel as TextChannel;
 
+    let hasDeletedMessage = false;
     if (this.deleteOnTimeout && clientMessage.deletable) {
       await clientMessage.delete();
 
-      clientMessage.deleted = true;
+      hasDeletedMessage = true;
     }
-    if (clientMessage.guild && !clientMessage.deleted) {
+    if (clientMessage.guild && !hasDeletedMessage) {
       const missing = channel
         .permissionsFor(channel.client.user)
-        .missing([ 'MANAGE_MESSAGES' ]);
+        .missing([ PermissionsBitField.Flags.ManageMessages ]);
 
       if (!missing.length) await clientMessage.reactions.removeAll();
     }
@@ -657,13 +694,7 @@ export abstract class PaginationEmbed<Element> extends EventEmitter {
       const response = responses.first();
       const content = response.content;
       const missing = (channel as TextChannel).permissionsFor(channel.client.user)
-        .missing([ 'MANAGE_MESSAGES' ]);
-
-      if (this.clientAssets.message.deleted) {
-        if (this.listenerCount('error')) this.emit('error', new Error(MESSAGE_DELETED));
-
-        return;
-      }
+        .missing([ PermissionsBitField.Flags.ManageMessages ]);
 
       await prompt.delete();
 
@@ -806,8 +837,8 @@ export type NavigationEmojiIdentifier = 'back' | 'jump' | 'forward' | 'delete' |
  *  };
  *  ```
  */
-export interface FunctionEmoji<Element> {
-  [emojiNameOrID: string]: (user: User, instance: Embeds | FieldsEmbed<Element>) => any;
+export interface FunctionEmoji {
+  [emojiNameOrID: string]: (user: User, instance: Embeds) => any;
 }
 
 /**

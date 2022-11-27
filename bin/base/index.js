@@ -4,9 +4,9 @@ Object.defineProperty(exports, "__esModule", {
   value: !0
 }), exports.PaginationEmbed = void 0;
 
-const t = require("events");
+const t = require("discord.js"), e = require("events");
 
-class e extends t.EventEmitter {
+class i extends e.EventEmitter {
   constructor() {
     super(), this.authorizedUsers = [], this.channel = null, this.clientAssets = {}, 
     this.content = {
@@ -36,7 +36,7 @@ class e extends t.EventEmitter {
     return this._pageIndicator(this.page, this.pages);
   }
   build() {
-    throw new Error("Cannot invoke this class. Invoke with [PaginationEmbed.Embeds] or [PaginationEmbed.FieldsEmbed] instead.");
+    throw new Error("Cannot invoke this class. Invoke with [PaginationEmbed.Embeds] instead.");
   }
   addFunctionEmoji(t, e) {
     if (!(e instanceof Function)) throw new TypeError(`Callback for ${t} must be a function type.`);
@@ -55,6 +55,17 @@ class e extends t.EventEmitter {
   setArray(t) {
     if (!(Array.isArray(t) && Boolean(t.length))) throw new TypeError("Cannot invoke PaginationEmbed class without a valid array to paginate.");
     return this.array = t, this;
+  }
+  setFiles(t) {
+    if (!this.array) throw new TypeError("this.array must be set first.");
+    if (this.array.length !== t.length) throw new TypeError("the files array must have the same length as the embeds array.");
+    return this.files = t, this;
+  }
+  setFile(t) {
+    if (!this.array) throw new TypeError("this.array must be set first.");
+    return this.files = [], this.array.forEach((() => {
+      this.files.push(t);
+    })), this;
   }
   setAuthorizedUsers(t) {
     if (!Array.isArray(t) && "string" != typeof t) throw new TypeError("Cannot invoke PaginationEmbed class without a valid array.");
@@ -133,10 +144,10 @@ class e extends t.EventEmitter {
     return this._checkPermissions();
   }
   async _checkPermissions() {
-    const t = this.channel;
-    if (t.guild) {
-      const e = t.permissionsFor(t.client.user).missing([ "ADD_REACTIONS", "EMBED_LINKS", "VIEW_CHANNEL", "SEND_MESSAGES" ]);
-      if (e.length) throw new Error(`Cannot invoke PaginationEmbed class without required permissions: ${e.join(", ")}`);
+    const e = this.channel;
+    if (e.guild) {
+      const i = e.permissionsFor(e.client.user).missing([ t.PermissionsBitField.Flags.AddReactions, t.PermissionsBitField.Flags.EmbedLinks, t.PermissionsBitField.Flags.ViewChannel, t.PermissionsBitField.Flags.SendMessages ]);
+      if (i.length) throw new Error(`Cannot invoke PaginationEmbed class without required permissions: ${i.join(", ")}`);
     }
     return !0;
   }
@@ -164,21 +175,21 @@ class e extends t.EventEmitter {
     return this.setPage(t), await this._loadList(!1), this._awaitResponse();
   }
   async _awaitResponse() {
-    const t = Object.values(this.navigationEmojis), e = this.clientAssets.message.channel, i = (e, i) => {
-      const s = !!this._enabled("all") && (!this._disabledNavigationEmojiValues.length || this._disabledNavigationEmojiValues.some((t => ![ e.emoji.name, e.emoji.id ].includes(t)))) && (t.includes(e.emoji.name) || t.includes(e.emoji.id)) || e.emoji.name in this.functionEmojis || e.emoji.id in this.functionEmojis;
+    const e = Object.values(this.navigationEmojis), i = this.clientAssets.message.channel, s = (t, i) => {
+      const s = !!this._enabled("all") && (!this._disabledNavigationEmojiValues.length || this._disabledNavigationEmojiValues.some((e => ![ t.emoji.name, t.emoji.id ].includes(e)))) && (e.includes(t.emoji.name) || e.includes(t.emoji.id)) || t.emoji.name in this.functionEmojis || t.emoji.id in this.functionEmojis;
       return this.authorizedUsers.length ? this.authorizedUsers.includes(i.id) && s : !i.bot && s;
-    }, s = this.clientAssets.message;
+    }, a = this.clientAssets.message;
     try {
-      const t = (await s.awaitReactions({
-        filter: i,
+      const e = (await a.awaitReactions({
+        filter: s,
         max: 1,
         time: this.timeout,
         errors: [ "time" ]
-      })).first(), n = t.users.cache.last(), a = [ t.emoji.name, t.emoji.id ];
-      if (this.listenerCount("react") && this.emit("react", n, t.emoji), s.guild) {
-        e.permissionsFor(e.client.user).missing([ "MANAGE_MESSAGES" ]).length || await t.users.remove(n);
+      })).first(), n = e.users.cache.last(), o = [ e.emoji.name, e.emoji.id ];
+      if (this.listenerCount("react") && this.emit("react", n, e.emoji), a.guild) {
+        i.permissionsFor(i.client.user).missing([ t.PermissionsBitField.Flags.ManageMessages ]).length || await e.users.remove(n);
       }
-      switch (a[0] || a[1]) {
+      switch (o[0] || o[1]) {
        case this.navigationEmojis.back:
         return 1 === this.page ? this._awaitResponse() : this._loadPage("back");
 
@@ -189,46 +200,46 @@ class e extends t.EventEmitter {
         return this.page === this.pages ? this._awaitResponse() : this._loadPage("forward");
 
        case this.navigationEmojis.delete:
-        return await s.delete(), void (this.listenerCount("finish") && this.emit("finish", n));
+        return await a.delete(), void (this.listenerCount("finish") && this.emit("finish", n));
 
        default:
         {
-          const t = this.functionEmojis[a[0]] || this.functionEmojis[a[1]];
+          const t = this.functionEmojis[o[0]] || this.functionEmojis[o[1]];
           try {
             await t(n, this);
           } catch (t) {
-            return this._cleanUp(t, s, !1, n);
+            return this._cleanUp(t, a, !1, n);
           }
           return this._loadPage(this.page);
         }
       }
     } catch (t) {
-      return this._cleanUp(t, s);
+      return this._cleanUp(t, a);
     }
   }
-  async _cleanUp(t, e, i = !0, s) {
+  async _cleanUp(e, i, s = !0, a) {
     const n = this.clientAssets.message.channel;
-    if (this.deleteOnTimeout && e.deletable && (await e.delete(), e.deleted = !0), e.guild && !e.deleted) {
-      n.permissionsFor(n.client.user).missing([ "MANAGE_MESSAGES" ]).length || await e.reactions.removeAll();
+    let o = !1;
+    if (this.deleteOnTimeout && i.deletable && (await i.delete(), o = !0), i.guild && !o) {
+      n.permissionsFor(n.client.user).missing([ t.PermissionsBitField.Flags.ManageMessages ]).length || await i.reactions.removeAll();
     }
-    if (t instanceof Error) return void (this.listenerCount("error") && this.emit("error", t));
-    const a = i ? "expire" : "finish";
-    this.listenerCount(a) && this.emit(a, s);
+    if (e instanceof Error) return void (this.listenerCount("error") && this.emit("error", e));
+    const r = s ? "expire" : "finish";
+    this.listenerCount(r) && this.emit(r, a);
   }
-  async _awaitResponseEx(t) {
-    const e = [ "0", "cancel" ], i = i => {
-      const s = parseInt(i.content);
-      return i.author.id === t.id && (!isNaN(Number(i.content)) && s !== this.page && s >= 1 && s <= this.pages || e.includes(i.content.toLowerCase()));
-    }, s = this.clientAssets.message.channel, n = await s.send(this.clientAssets.prompt.replace(/\{\{user\}\}/g, t.toString()));
+  async _awaitResponseEx(e) {
+    const i = [ "0", "cancel" ], s = t => {
+      const s = parseInt(t.content);
+      return t.author.id === e.id && (!isNaN(Number(t.content)) && s !== this.page && s >= 1 && s <= this.pages || i.includes(t.content.toLowerCase()));
+    }, a = this.clientAssets.message.channel, n = await a.send(this.clientAssets.prompt.replace(/\{\{user\}\}/g, e.toString()));
     try {
-      const t = (await s.awaitMessages({
-        filter: i,
+      const e = (await a.awaitMessages({
+        filter: s,
         max: 1,
         time: this.timeout,
         errors: [ "time" ]
-      })).first(), a = t.content, o = s.permissionsFor(s.client.user).missing([ "MANAGE_MESSAGES" ]);
-      return this.clientAssets.message.deleted ? void (this.listenerCount("error") && this.emit("error", new Error("Client's message was deleted before being processed."))) : (await n.delete(), 
-      t.deletable && (o.length || await t.delete()), e.includes(a) ? this._awaitResponse() : this._loadPage(parseInt(a)));
+      })).first(), o = e.content, r = a.permissionsFor(a.client.user).missing([ t.PermissionsBitField.Flags.ManageMessages ]);
+      return await n.delete(), e.deletable && (r.length || await e.delete()), i.includes(o) ? this._awaitResponse() : this._loadPage(parseInt(o));
     } catch (t) {
       if (n.deletable && await n.delete(), t instanceof Error) return void (this.listenerCount("error") && this.emit("error", t));
       this.listenerCount("expire") && this.emit("expire");
@@ -236,4 +247,4 @@ class e extends t.EventEmitter {
   }
 }
 
-exports.PaginationEmbed = e;
+exports.PaginationEmbed = i;

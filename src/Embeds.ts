@@ -1,18 +1,18 @@
 import {
+  APIEmbed,
+  AttachmentBuilder,
   ColorResolvable,
-  EmbedField,
-  EmbedFieldData,
-  Message,
-  MessageEmbed
+  EmbedBuilder,
+  Message
 } from 'discord.js';
 import { PaginationEmbed } from './base';
 
 /**
- * A pagination mode that uses an array of MessageEmbed to paginate.
+ * A pagination mode that uses an array of EmbedBuilder to paginate.
  * @extends [[PaginationEmbed]]
  * @noInheritDoc
  */
-export class Embeds extends PaginationEmbed<MessageEmbed> {
+export class Embeds extends PaginationEmbed<EmbedBuilder> {
 
   /** The title of all embeds. */
   public title: string;
@@ -28,9 +28,6 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
 
   /** The timestamp of all embeds. */
   public timestamp: number;
-
-  /** The fields of all embeds. */
-  public fields: EmbedField[];
 
   /** The thumbnail of all embeds. */
   public thumbnail: string;
@@ -52,8 +49,13 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
   };
 
   /** Embed in the current page. */
-  get currentEmbed (): MessageEmbed {
+  get currentEmbed (): EmbedBuilder {
     return this.array[this.page - 1];
+  }
+
+  /* Files to attach to the current page. */
+  get currentFiles (): AttachmentBuilder[] {
+    return this.files ? [ this.files[this.page - 1] ] : [];
   }
 
   get pages (): number {
@@ -70,16 +72,7 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
     if (!this.array) throw new TypeError('this.array must be set first.');
 
     for (const el of this.array)
-      el.addField(name, value, inline);
-
-    return this;
-  }
-
-  public addFields (...fields: EmbedFieldData[] | EmbedFieldData[][]) {
-    if (!this.array) throw new TypeError('this.array must be set first.');
-
-    for (const el of this.array)
-      el.addFields(...fields);
+      el.addFields({name, value, inline});
 
     return this;
   }
@@ -90,13 +83,13 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
    * ### Example
    * ```js
    *   const { Embeds } = require('discord-paginationembed');
-   *   const { MessageEmbed } = require('discord.js');
+   *   const { EmbedBuilder } = require('discord.js');
    *
    *   // Under message event.
    *   const embeds = [];
    *
    *   for (let i = 0; i < 5; ++i)
-   *    embeds.push(new MessageEmbed().addField('Page', i + 1));
+   *    embeds.push(new EmbedBuilder().addFields({name: 'Page', value: i + 1}));
    *
    *   new Embeds()
    *    .setAuthorizedUsers([message.author.id])
@@ -134,23 +127,23 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
   }
 
   /**
-   * Sets the array of MessageEmbed to paginate.
-   * @param array - An array of MessageEmbed to paginate.
+   * Sets the array of EmbedBuilder to paginate.
+   * @param array - An array of EmbedBuilder to paginate.
    */
-  public setArray (array: MessageEmbed[]) {
+  public setArray (array: (APIEmbed|EmbedBuilder)[]) {
     const isValidArray = Array.isArray(array) && Boolean(array.length);
 
     if (!isValidArray) throw new TypeError('Cannot invoke Embeds class without a valid array to paginate.');
 
     for (const [ i, v ] of array.entries())
       if (Boolean(v) && v.constructor === Object && Object.keys(v).length)
-        array[i] = new MessageEmbed(v);
-      else if (v instanceof MessageEmbed)
+        array[i] = new EmbedBuilder(v as APIEmbed);
+      else if (v instanceof EmbedBuilder)
         continue;
       else
-        throw new TypeError(`(MessageEmbeds[${i}]) Cannot invoke Embeds class with an invalid MessageEmbed instance.`);
+        throw new TypeError(`(EmbedBuilders[${i}]) Cannot invoke Embeds class with an invalid EmbedBuilder instance.`);
 
-    this.array = array;
+    this.array = array as EmbedBuilder[];
 
     return this;
   }
@@ -165,7 +158,7 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
     if (!this.array) throw new TypeError('this.array must be set first.');
 
     for (const el of this.array)
-      el.setAuthor(name, iconURL, url);
+      el.setAuthor({name, iconURL, url});
 
     return this;
   }
@@ -205,7 +198,7 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
     if (!this.array) throw new TypeError('this.array must be set first.');
 
     for (const el of this.array)
-      el.setFooter(text, iconURL);
+      el.setFooter({text, iconURL});
 
     return this;
   }
@@ -293,7 +286,7 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
     if (!this.array) throw new TypeError('this.array must be set first.');
 
     for (const el of this.array)
-      el.spliceFields(index, deleteCount, [ { name, value, inline } ]);
+      el.spliceFields(index, deleteCount, { name, value, inline });
 
     return this;
   }
@@ -309,7 +302,8 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
   public async _loadList (callNavigation = true) {
     if (this.listenerCount('pageUpdate')) this.emit('pageUpdate');
 
-    const embed = new MessageEmbed(this.currentEmbed);
+    const embed = new EmbedBuilder(this.currentEmbed.data);
+    const files = this.currentFiles;
     const isFooter = this.usePageIndicator === 'footer';
     const shouldIndicate = this.usePageIndicator && !isFooter
       ? this.pages === 1
@@ -319,10 +313,10 @@ export class Embeds extends PaginationEmbed<MessageEmbed> {
     const { separator, text } = this.content;
     // Fixes no-argument TS error
     const content = `${text ? `${text}${separator}` : ''}${shouldIndicate}`;
-    const options = { embeds: [ embed ], content: content || null };
+    const options = { embeds: [ embed ], content: content || null, files };
 
     if (isFooter)
-      embed.setFooter(this.pageIndicator, embed.footer.iconURL);
+      embed.setFooter({text: this.pageIndicator, iconURL: embed.data.footer.icon_url});
     if (this.clientAssets.message)
       await this.clientAssets.message.edit(options);
     else

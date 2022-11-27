@@ -6,21 +6,23 @@ Object.defineProperty(exports, "__esModule", {
 
 const t = require("discord.js"), r = require("./base");
 
-class s extends r.PaginationEmbed {
+class e extends r.PaginationEmbed {
   get currentEmbed() {
     return this.array[this.page - 1];
+  }
+  get currentFiles() {
+    return this.files ? [ this.files[this.page - 1] ] : [];
   }
   get pages() {
     return this.array.length;
   }
-  addField(t, r, s = !1) {
+  addField(t, r, e = !1) {
     if (!this.array) throw new TypeError("this.array must be set first.");
-    for (const e of this.array) e.addField(t, r, s);
-    return this;
-  }
-  addFields(...t) {
-    if (!this.array) throw new TypeError("this.array must be set first.");
-    for (const r of this.array) r.addFields(...t);
+    for (const s of this.array) s.addFields({
+      name: t,
+      value: r,
+      inline: e
+    });
     return this;
   }
   async build() {
@@ -28,18 +30,22 @@ class s extends r.PaginationEmbed {
   }
   setArray(r) {
     if (!(Array.isArray(r) && Boolean(r.length))) throw new TypeError("Cannot invoke Embeds class without a valid array to paginate.");
-    for (const [s, e] of r.entries()) {
-      if (!Boolean(e) || e.constructor !== Object || !Object.keys(e).length) {
-        if (e instanceof t.MessageEmbed) continue;
-        throw new TypeError(`(MessageEmbeds[${s}]) Cannot invoke Embeds class with an invalid MessageEmbed instance.`);
+    for (const [e, s] of r.entries()) {
+      if (!Boolean(s) || s.constructor !== Object || !Object.keys(s).length) {
+        if (s instanceof t.EmbedBuilder) continue;
+        throw new TypeError(`(EmbedBuilders[${e}]) Cannot invoke Embeds class with an invalid EmbedBuilder instance.`);
       }
-      r[s] = new t.MessageEmbed(e);
+      r[e] = new t.EmbedBuilder(s);
     }
     return this.array = r, this;
   }
-  setAuthor(t, r, s) {
+  setAuthor(t, r, e) {
     if (!this.array) throw new TypeError("this.array must be set first.");
-    for (const e of this.array) e.setAuthor(t, r, s);
+    for (const s of this.array) s.setAuthor({
+      name: t,
+      iconURL: r,
+      url: e
+    });
     return this;
   }
   setColor(t) {
@@ -54,7 +60,10 @@ class s extends r.PaginationEmbed {
   }
   setFooter(t, r) {
     if (!this.array) throw new TypeError("this.array must be set first.");
-    for (const s of this.array) s.setFooter(t, r);
+    for (const e of this.array) e.setFooter({
+      text: t,
+      iconURL: r
+    });
     return this;
   }
   setImage(t) {
@@ -82,13 +91,13 @@ class s extends r.PaginationEmbed {
     for (const r of this.array) r.setURL(t);
     return this;
   }
-  spliceFields(t, r, s, e, i) {
+  spliceFields(t, r, e, s, i) {
     if (!this.array) throw new TypeError("this.array must be set first.");
-    for (const a of this.array) a.spliceFields(t, r, [ {
-      name: s,
-      value: e,
+    for (const a of this.array) a.spliceFields(t, r, {
+      name: e,
+      value: s,
       inline: i
-    } ]);
+    });
     return this;
   }
   toJSON() {
@@ -97,13 +106,17 @@ class s extends r.PaginationEmbed {
   }
   async _loadList(r = !0) {
     this.listenerCount("pageUpdate") && this.emit("pageUpdate");
-    const s = new t.MessageEmbed(this.currentEmbed), e = "footer" === this.usePageIndicator, i = this.usePageIndicator && !e ? 1 === this.pages ? "" : this.pageIndicator : "", {separator: a, text: o} = this.content, n = {
-      embeds: [ s ],
-      content: `${o ? `${o}${a}` : ""}${i}` || null
+    const e = new t.EmbedBuilder(this.currentEmbed.data), s = this.currentFiles, i = "footer" === this.usePageIndicator, a = this.usePageIndicator && !i ? 1 === this.pages ? "" : this.pageIndicator : "", {separator: o, text: n} = this.content, h = {
+      embeds: [ e ],
+      content: `${n ? `${n}${o}` : ""}${a}` || null,
+      files: s
     };
-    return e && s.setFooter(this.pageIndicator, s.footer.iconURL), this.clientAssets.message ? await this.clientAssets.message.edit(n) : this.clientAssets.message = await this.channel.send(n), 
+    return i && e.setFooter({
+      text: this.pageIndicator,
+      iconURL: e.data.footer.icon_url
+    }), this.clientAssets.message ? await this.clientAssets.message.edit(h) : this.clientAssets.message = await this.channel.send(h), 
     super._loadList(r);
   }
 }
 
-exports.Embeds = s;
+exports.Embeds = e;

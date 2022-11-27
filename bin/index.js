@@ -1,19 +1,21 @@
 "use strict";
 
-var e = this && this.__createBinding || (Object.create ? function(e, r, t, i) {
-  void 0 === i && (i = t), Object.defineProperty(e, i, {
+var e = this && this.__createBinding || (Object.create ? function(e, r, t, o) {
+  void 0 === o && (o = t);
+  var i = Object.getOwnPropertyDescriptor(r, t);
+  i && !("get" in i ? !r.__esModule : i.writable || i.configurable) || (i = {
     enumerable: !0,
     get: function() {
       return r[t];
     }
-  });
-} : function(e, r, t, i) {
-  void 0 === i && (i = t), e[i] = r[t];
+  }), Object.defineProperty(e, o, i);
+} : function(e, r, t, o) {
+  void 0 === o && (o = t), e[o] = r[t];
 }), r = this && this.__exportStar || function(r, t) {
-  for (var i in r) "default" === i || Object.prototype.hasOwnProperty.call(t, i) || e(t, r, i);
+  for (var o in r) "default" === o || Object.prototype.hasOwnProperty.call(t, o) || e(t, r, o);
 };
 
 Object.defineProperty(exports, "__esModule", {
   value: !0
-}), exports.version = void 0, r(require("./Embeds"), exports), r(require("./FieldsEmbed"), exports), 
-r(require("./base"), exports), exports.version = require("../package.json").version;
+}), exports.version = void 0, r(require("./Embeds"), exports), r(require("./base"), exports), 
+exports.version = require("../package.json").version;

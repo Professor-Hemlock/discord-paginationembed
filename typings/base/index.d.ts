@@ -1,9 +1,7 @@
 /** @module PaginationEmbed */
-/// <reference types="node" />
-import { DMChannel, Emoji, Message, NewsChannel, Snowflake, TextChannel, User } from 'discord.js';
+import { AttachmentBuilder, DMChannel, Emoji, Message, NewsChannel, Snowflake, TextChannel, User } from 'discord.js';
 import { EventEmitter } from 'events';
 import { Embeds } from '../Embeds';
-import { FieldsEmbed } from '../FieldsEmbed';
 /**
  * The base class for Pagination Modes. **Do not invoke**.
  * @extends [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter)
@@ -19,6 +17,8 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
     clientAssets: ClientAssets;
     /** An array of elements to paginate. */
     array: Element[];
+    /** An array of files to attach to the paginated messages. */
+    files: AttachmentBuilder[];
     /**
      * Whether to show page indicator, or put it in embed's footer text (replaces the existing text) instead.
      * Default: `false`
@@ -40,7 +40,7 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
      * Function emojis are user-customised message reactions
      * for modifying the current instance of the pagination such as modifying embed texts, stopping the pagination, etc.
      */
-    functionEmojis: FunctionEmoji<Element>;
+    functionEmojis: FunctionEmoji;
     /**
      * The disabled navigation emojis.
      * Available navigation emojis to disable:
@@ -92,7 +92,7 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
      * @param emoji - The emoji to use as the function's emoji.
      * @param callback - The function to call upon pressing the function emoji.
      */
-    addFunctionEmoji(emoji: string, callback: (user: User, instance: Embeds | FieldsEmbed<Element>) => any): this;
+    addFunctionEmoji(emoji: string, callback: (user: User, instance: Embeds) => any): this;
     /**
      * Deletes a function emoji.
      * @param emoji - The emoji key to delete.
@@ -105,6 +105,16 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
      * @param array - An array of elements to paginate.
      */
     setArray(array: Element[]): this;
+    /**
+     * Sets the array of files to attach to each embed.
+     * @param files - An array of files to attach to the embeds.
+     */
+    setFiles(files: AttachmentBuilder[]): this;
+    /**
+     * Set a single file to attach to every embed.
+     * @param file - The file to attach to every embed.
+     */
+    setFile(file: AttachmentBuilder): this;
     /**
      * Set the authorized users to navigate the pages.
      * @param users - A user ID or an array of user IDs.
@@ -158,7 +168,7 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
      * ```
      * @param emojis - An object containing customised emojis to use as function emojis.
      */
-    setFunctionEmojis(emojis: FunctionEmoji<Element>): this;
+    setFunctionEmojis(emojis: FunctionEmoji): this;
     /**
      * Sets the emojis used for navigation emojis.
      * @param emojis - An object containing customised emojis to use as navigation emojis.
@@ -214,8 +224,8 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
     /** Deploys navigation emojis. */
     protected _drawNavigationEmojis(): Promise<void>;
     /**
-     * Helper for intialising the MessageEmbed.
-     * [For sub-class] Initialises the MessageEmbed.
+     * Helper for intialising the EmbedBuilder.
+     * [For sub-class] Initialises the EmbedBuilder.
      * @param callNavigation - Whether to call _drawEmojis().
      * @ignore
      */
@@ -283,16 +293,16 @@ export declare abstract class PaginationEmbed<Element> extends EventEmitter {
     once(event: 'error', listener: ListenerError): this;
 }
 /**  @param user The user who responded to the instance. */
-export declare type ListenerUser = (user: User) => void;
+export type ListenerUser = (user: User) => void;
 /**
  * @param user The user who responded to the instance.
  * @param emoji The emoji that was reacted to the instance.
  */
-export declare type ListenerReact = (user: User, emoji: Emoji) => void;
+export type ListenerReact = (user: User, emoji: Emoji) => void;
 /** @param err The error object. */
-export declare type ListenerError = (err: Error) => void;
+export type ListenerError = (err: Error) => void;
 /** Options for [[PaginationEmbed.disabledNavigationEmojis]]. */
-export declare type DisabledNavigationEmojis = NavigationEmojiIdentifier[];
+export type DisabledNavigationEmojis = NavigationEmojiIdentifier[];
 /** An object containing emojis to use as navigation emojis. */
 export interface NavigationEmojis {
     back: string | '◀';
@@ -324,7 +334,7 @@ export interface ClientMessageContent {
      */
     separator?: string;
 }
-export declare type NavigationEmojiIdentifier = 'back' | 'jump' | 'forward' | 'delete' | 'all';
+export type NavigationEmojiIdentifier = 'back' | 'jump' | 'forward' | 'delete' | 'all';
 /**
  * Function for a custom emoji.
  *
@@ -342,8 +352,8 @@ export declare type NavigationEmojiIdentifier = 'back' | 'jump' | 'forward' | 'd
  *  };
  *  ```
  */
-export interface FunctionEmoji<Element> {
-    [emojiNameOrID: string]: (user: User, instance: Embeds | FieldsEmbed<Element>) => any;
+export interface FunctionEmoji {
+    [emojiNameOrID: string]: (user: User, instance: Embeds) => any;
 }
 /**
  * Function to pass to the instance for page indicator formatting.
@@ -353,5 +363,5 @@ export interface FunctionEmoji<Element> {
  *  (page, pages) => `Page ${page} of ${pages}`
  * ```
  */
-export declare type PageIndicatorCaster = (page: number, pages: number) => string;
-export declare type PageIndicatorPreMadeTypes = 'text' | 'textcompact' | 'circle' | 'hybrid';
+export type PageIndicatorCaster = (page: number, pages: number) => string;
+export type PageIndicatorPreMadeTypes = 'text' | 'textcompact' | 'circle' | 'hybrid';

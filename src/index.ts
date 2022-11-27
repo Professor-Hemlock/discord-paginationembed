@@ -1,5 +1,4 @@
 export * from './Embeds';
-export * from './FieldsEmbed';
 export * from './base';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires

@@ -1,11 +1,11 @@
-import { ColorResolvable, EmbedField, EmbedFieldData, MessageEmbed } from 'discord.js';
+import { APIEmbed, AttachmentBuilder, ColorResolvable, EmbedBuilder } from 'discord.js';
 import { PaginationEmbed } from './base';
 /**
- * A pagination mode that uses an array of MessageEmbed to paginate.
+ * A pagination mode that uses an array of EmbedBuilder to paginate.
  * @extends [[PaginationEmbed]]
  * @noInheritDoc
  */
-export declare class Embeds extends PaginationEmbed<MessageEmbed> {
+export declare class Embeds extends PaginationEmbed<EmbedBuilder> {
     /** The title of all embeds. */
     title: string;
     /** The description of all embeds. */
@@ -16,8 +16,6 @@ export declare class Embeds extends PaginationEmbed<MessageEmbed> {
     color: number;
     /** The timestamp of all embeds. */
     timestamp: number;
-    /** The fields of all embeds. */
-    fields: EmbedField[];
     /** The thumbnail of all embeds. */
     thumbnail: string;
     /** The image of all embeds. */
@@ -34,7 +32,8 @@ export declare class Embeds extends PaginationEmbed<MessageEmbed> {
         iconURL?: string;
     };
     /** Embed in the current page. */
-    get currentEmbed(): MessageEmbed;
+    get currentEmbed(): EmbedBuilder;
+    get currentFiles(): AttachmentBuilder[];
     get pages(): number;
     /**
      * Adds a field to the fields of all embeds.
@@ -43,20 +42,19 @@ export declare class Embeds extends PaginationEmbed<MessageEmbed> {
      * @param inline - Whether the field is inline to the other fields.
      */
     addField(name: string, value: string, inline?: boolean): this;
-    addFields(...fields: EmbedFieldData[] | EmbedFieldData[][]): this;
     /**
      * Build the Pagination Embeds.
      *
      * ### Example
      * ```js
      *   const { Embeds } = require('discord-paginationembed');
-     *   const { MessageEmbed } = require('discord.js');
+     *   const { EmbedBuilder } = require('discord.js');
      *
      *   // Under message event.
      *   const embeds = [];
      *
      *   for (let i = 0; i < 5; ++i)
-     *    embeds.push(new MessageEmbed().addField('Page', i + 1));
+     *    embeds.push(new EmbedBuilder().addFields({name: 'Page', value: i + 1}));
      *
      *   new Embeds()
      *    .setAuthorizedUsers([message.author.id])
@@ -89,10 +87,10 @@ export declare class Embeds extends PaginationEmbed<MessageEmbed> {
      */
     build(): Promise<void>;
     /**
-     * Sets the array of MessageEmbed to paginate.
-     * @param array - An array of MessageEmbed to paginate.
+     * Sets the array of EmbedBuilder to paginate.
+     * @param array - An array of EmbedBuilder to paginate.
      */
-    setArray(array: MessageEmbed[]): this;
+    setArray(array: (APIEmbed | EmbedBuilder)[]): this;
     /**
      * Set the author of all embeds.
      * @param name - The name of the author.
@@ -151,7 +149,7 @@ export declare class Embeds extends PaginationEmbed<MessageEmbed> {
      */
     spliceFields(index: number, deleteCount: number, name?: string, value?: string, inline?: boolean): this;
     /** Transforms all embeds to plain objects. */
-    toJSON(): unknown[];
+    toJSON(): APIEmbed[];
     /** @ignore */
     _loadList(callNavigation?: boolean): Promise<void>;
 }
