@@ -1,3 +1,10 @@
+# FORKED FROM UNMAINTAINED GITHUB PROJECT
+
+This project was originally from [gazmull/discord-paginationembed on GitHub](https://github.com/gazmull/discord-paginationembed), and was available as [discord-paginationembed](https://www.npmjs.com/package/discord-paginationembed) on NPM. However, as of December 2022, the project hasn't been updated in 1.5 years, and doesn't have support for Discord.JS v14 (the original maintainer started adding support for v13, but there was no official release for that).
+
+Rather than bothering to update the whole library, I've updated only the parts we use to support DiscordJS v14, and removed the rest. This means that the original maintainer probably wouldn't accept a pull request for this (although to be fair, I didn't try), so we just use this fork instead.
+
+
 # Discord.JS - PaginationEmbed
 A pagination utility for MessageEmbed in Discord.JS
 
